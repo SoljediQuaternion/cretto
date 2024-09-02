@@ -4,6 +4,7 @@ version = "1.0.0"
 authors = []
 
 [addresses]
+app="0x9caaa81da2fb9e23f7af69cb4efa779b22e95c25d48dadba93c1fe375a7f11aa"
 
 [dev-addresses]
 
