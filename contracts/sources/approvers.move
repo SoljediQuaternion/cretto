@@ -4,6 +4,7 @@ module app::approvers {
     use aptos_std::smart_table::{SmartTable, add, borrow_mut};
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::coin;
+    use aptos_framework::event;
     use aptos_framework::timestamp;
     friend app::fundraiser;
 
@@ -32,6 +33,11 @@ module app::approvers {
     struct ApproverRequestApproved has store, drop {
         approved_user: address,
         amount_staked: u64
+    }
+
+    #[event]
+    struct ApproverSlashed has store, drop {
+        slashed_user: address
     }
 
     // STRUCTS
@@ -125,6 +131,9 @@ module app::approvers {
         let stake_amount =
             borrow_mut(&mut admin_resource.approver_to_amount_staked, approver_address);
         *stake_amount = 0;
+        event::emit(ApproverSlashed{
+            slashed_user: signer::address_of(account)
+        });
     }
 
     public entry fun withdraw_amount(account: &signer, amount: u64) acquires Admin, Approver {
