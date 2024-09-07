@@ -1,6 +1,5 @@
 module app::fundraiser {
 
-
     use std::signer;
     use std::vector;
     use aptos_framework::event;
@@ -8,6 +7,7 @@ module app::fundraiser {
     use aptos_framework::timestamp;
     use aptos_framework::coin;
     use aptos_framework::aptos_coin::AptosCoin;
+    use app::approvers;
 
     // ERRORS
     const ERROR_FUNDRAISE_STORE_DOES_NOT_EXIST: u64 = 1;
@@ -15,6 +15,7 @@ module app::fundraiser {
     const ERROR_FUNDRAISER_NOT_APPROVED: u64 = 3;
     const ERROR_INSUFFICIENT_BALANCE: u64 = 4;
     const ERROR_FUNDRAISE_ALREADY_APPROVED: u64 = 5;
+    const ERROR_INVALID_APPROVER: u64 = 6;
 
     // CONSTANTS
     const ADMIN_PERCENTAGE: u8 = 2;
@@ -46,7 +47,6 @@ module app::fundraiser {
         approver: address
     }
 
-
     struct FundraiserStore has key, store {
         fundraisers: vector<Fundraise>,
         fundraisers_count: u64
@@ -62,21 +62,23 @@ module app::fundraiser {
     }
 
     public entry fun start_fundraiser(
-        account: &signer,
-        recepient_address: address,
-        amount_to_raise: u64
+        account: &signer, recepient_address: address, amount_to_raise: u64
     ) acquires FundraiserStore {
         let fundraiser_creator = signer::address_of(account);
-        if(!exists<FundraiserStore>(fundraiser_creator)){
-            move_to(account, FundraiserStore{
-                fundraisers: vector<Fundraise>[],
-                fundraisers_count: 0
-            });
+        if (!exists<FundraiserStore>(fundraiser_creator)) {
+            move_to(
+                account,
+                FundraiserStore {
+                    fundraisers: vector<Fundraise>[],
+                    fundraisers_count: 0
+                }
+            );
         };
 
         let store = borrow_global_mut<FundraiserStore>(fundraiser_creator);
 
-        let fundraise_new_id: guid::ID = guid::create_id(fundraiser_creator, store.fundraisers_count);
+        let fundraise_new_id: guid::ID =
+            guid::create_id(fundraiser_creator, store.fundraisers_count);
         let new_fundraiser = Fundraise {
             id: fundraise_new_id,
             recepient_address,
@@ -88,13 +90,15 @@ module app::fundraiser {
 
         vector::push_back(&mut store.fundraisers, new_fundraiser);
         store.fundraisers_count = store.fundraisers_count + 1;
-        event::emit(FundraiserStarted{
-            fundraise_creator: fundraiser_creator,
-            recepient_address,
-            id: store.fundraisers_count,
-            amount_to_raise,
-            timestamp: timestamp::now_seconds()
-        });
+        event::emit(
+            FundraiserStarted {
+                fundraise_creator: fundraiser_creator,
+                recepient_address,
+                id: store.fundraisers_count,
+                amount_to_raise,
+                timestamp: timestamp::now_seconds()
+            }
+        );
     }
 
     public entry fun donate(
@@ -103,24 +107,34 @@ module app::fundraiser {
         fundraise_index: u64,
         amount: u64
     ) acquires FundraiserStore {
-        assert!(exists<FundraiserStore>(fundraiser_creator), ERROR_FUNDRAISE_STORE_DOES_NOT_EXIST);
+        assert!(
+            exists<FundraiserStore>(fundraiser_creator),
+            ERROR_FUNDRAISE_STORE_DOES_NOT_EXIST
+        );
         let fundraise_store = borrow_global_mut<FundraiserStore>(fundraiser_creator);
 
         // Find the fundraiser
-        assert!( fundraise_index < vector::length(&fundraise_store.fundraisers),  ERROR_FUNDRAISER_NOT_FOUND);
-        let fundraiser = vector::borrow_mut(&mut fundraise_store.fundraisers, fundraise_index);
+        assert!(
+            fundraise_index < vector::length(&fundraise_store.fundraisers),
+            ERROR_FUNDRAISER_NOT_FOUND
+        );
+        let fundraiser = vector::borrow_mut(
+            &mut fundraise_store.fundraisers, fundraise_index
+        );
 
         let donor_address = signer::address_of(account);
 
         // Check if the donor has sufficient balance
-        assert!(coin::balance<AptosCoin>(donor_address) >= amount, ERROR_INSUFFICIENT_BALANCE);
+        assert!(
+            coin::balance<AptosCoin>(donor_address) >= amount, ERROR_INSUFFICIENT_BALANCE
+        );
 
         // Calculate distribution
         let admin_amount = (((amount as u128) * (ADMIN_PERCENTAGE as u128) / 100u128) as u64);
-        let approvers_amount = (((amount as u128) * (APPROVERS_PERCENTAGE as u128) / 100u128) as u64);
+        let approvers_amount =
+            (((amount as u128) * (APPROVERS_PERCENTAGE as u128) / 100u128) as u64);
         let recipient_amount = amount - admin_amount - approvers_amount;
 
-        // TODO: Transfer funds portion
         coin::transfer<AptosCoin>(account, @admin, admin_amount);
         coin::transfer<AptosCoin>(account, @app, approvers_amount);
         coin::transfer<AptosCoin>(account, fundraiser.recepient_address, recipient_amount);
@@ -129,34 +143,44 @@ module app::fundraiser {
         fundraiser.amount_raised = fundraiser.amount_raised + amount;
 
         // Emit event
-        event::emit(DonationMade {
-            donor: donor_address,
-            fundraise_creator: fundraiser_creator,
-            fundraise_id: fundraise_index,
-            amount,
-            timestamp: timestamp::now_seconds()
-        });
+        event::emit(
+            DonationMade {
+                donor: donor_address,
+                fundraise_creator: fundraiser_creator,
+                fundraise_id: fundraise_index,
+                amount,
+                timestamp: timestamp::now_seconds()
+            }
+        );
     }
 
     public entry fun approve_fundraise(
-        account: &signer,
-        fundraiser_creator: address,
-        fundraise_index: u64
+        account: &signer, fundraiser_creator: address, fundraise_index: u64
     ) acquires FundraiserStore {
-        assert!(exists<FundraiserStore>(fundraiser_creator), ERROR_FUNDRAISE_STORE_DOES_NOT_EXIST);
+        assert!(
+            exists<FundraiserStore>(fundraiser_creator),
+            ERROR_FUNDRAISE_STORE_DOES_NOT_EXIST
+        );
         let fundraise_store = borrow_global_mut<FundraiserStore>(fundraiser_creator);
-
+        let approver_resource = approvers::is_approver_verified(signer::address_of(account));
         // TODO: check if account is approver or not
-
-        assert!( fundraise_index < vector::length(&fundraise_store.fundraisers),  ERROR_FUNDRAISER_NOT_FOUND);
-        let fundraise = vector::borrow_mut(&mut fundraise_store.fundraisers, fundraise_index);
+        assert!(approver_resource, ERROR_INVALID_APPROVER);
+        assert!(
+            fundraise_index < vector::length(&fundraise_store.fundraisers),
+            ERROR_FUNDRAISER_NOT_FOUND
+        );
+        let fundraise = vector::borrow_mut(
+            &mut fundraise_store.fundraisers, fundraise_index
+        );
         assert!(!fundraise.is_approved, ERROR_FUNDRAISE_ALREADY_APPROVED);
         fundraise.is_approved = true;
         fundraise.approved_by = signer::address_of(account);
-        event::emit(FundraiseApproved{
-            fundraise_creator: fundraiser_creator,
-            fundraise_id: fundraise_index,
-            approver: signer::address_of(account)
-        });
+        event::emit(
+            FundraiseApproved {
+                fundraise_creator: fundraiser_creator,
+                fundraise_id: fundraise_index,
+                approver: signer::address_of(account)
+            }
+        );
     }
 }
