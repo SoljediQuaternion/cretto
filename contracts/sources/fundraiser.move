@@ -1,5 +1,6 @@
 module app::fundraiser {
 
+
     use std::signer;
     use std::vector;
     use aptos_framework::event;
@@ -120,8 +121,8 @@ module app::fundraiser {
         let recipient_amount = amount - admin_amount - approvers_amount;
 
         // TODO: Transfer funds portion
-        // coin::transfer<AptosCoin>(account, @admin, admin_amount);
-        // coin::transfer<AptosCoin>(account, @approvers, approvers_amount);
+        coin::transfer<AptosCoin>(account, @admin, admin_amount);
+        coin::transfer<AptosCoin>(account, @app, approvers_amount);
         coin::transfer<AptosCoin>(account, fundraiser.recepient_address, recipient_amount);
 
         // Update fundraiser state
@@ -159,11 +160,3 @@ module app::fundraiser {
         });
     }
 }
-// STRUCTS
-// fundraiser struct
-// fundraiserStore struct
-// struct for approvers
-// --------------------------------------------------------------
-// FUNCTIONS
-// create a fundraiser
-// donate to a fundraiser (some % given to approvers, admin) -> feature (seperate vault for approvers)
