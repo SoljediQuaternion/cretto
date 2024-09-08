@@ -23,6 +23,12 @@ module app::fundraiser {
 
     // EVENTS
     #[event]
+    struct NewFundraiseCreatorCreated has store, drop {
+        fundraise_creator: address,
+        timestamp: u64
+    }
+
+    #[event]
     struct FundraiserStarted has store, drop {
         fundraise_creator: address,
         recepient_address: address,
@@ -74,7 +80,10 @@ module app::fundraiser {
                 }
             );
         };
-
+        event::emit(NewFundraiseCreatorCreated {
+            fundraise_creator: signer::address_of(account),
+            timestamp: timestamp::now_seconds()
+        });
         let store = borrow_global_mut<FundraiserStore>(fundraiser_creator);
 
         let fundraise_new_id: guid::ID =
@@ -163,7 +172,6 @@ module app::fundraiser {
         );
         let fundraise_store = borrow_global_mut<FundraiserStore>(fundraiser_creator);
         let approver_resource = approvers::is_approver_verified(signer::address_of(account));
-        // TODO: check if account is approver or not
         assert!(approver_resource, ERROR_INVALID_APPROVER);
         assert!(
             fundraise_index < vector::length(&fundraise_store.fundraisers),
