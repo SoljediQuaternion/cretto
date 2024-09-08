@@ -1,3 +1,5 @@
 .aptos
 .env
 build
+package-lock.json
+.idea 

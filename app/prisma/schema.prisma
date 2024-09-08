@@ -33,3 +33,17 @@ model Fundraisers {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model Approvers {
+  id Int @id @default(autoincrement())
+  approverAddress String @unique
+  aptStaked BigInt
+  lastWithdrawalTimestamp DateTime
+  approvalStatus ApprovalStatus
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED 
+  SLASHED
+}

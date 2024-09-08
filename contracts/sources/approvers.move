@@ -153,6 +153,7 @@ module app::approvers {
             assert!(max_withdrawal_allowed < amount, ERROR_WITHDRAWAL_AMOUNT_TOO_HIGH);
             // TODO : transfer coins from @app to approver
 
+            approver_resource.last_withdrawal_timestamp = timestamp::now_seconds();
             approver_resource.amount_staked = approver_resource.amount_staked - amount;
         } else {
             let admin_resource = borrow_global_mut<Admin>(@admin);
@@ -162,6 +163,7 @@ module app::approvers {
             assert!(max_withdrawal_allowed < amount, ERROR_WITHDRAWAL_AMOUNT_TOO_HIGH);
             // TODO : transfer coins from @app to approver
 
+            approver_resource.last_withdrawal_timestamp = timestamp::now_seconds();
             approver_resource.amount_staked = approver_resource.amount_staked - amount;
             admin_resource.total_approvers_stake = admin_resource.total_approvers_stake
                 - amount;
