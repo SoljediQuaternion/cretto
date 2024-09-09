@@ -4,8 +4,8 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-app="0x9caaa81da2fb9e23f7af69cb4efa779b22e95c25d48dadba93c1fe375a7f11aa"
-admin="0x01"
+app="0xb8c94714d3d21f54e1134d692c987fdf3d699e3bd7ce3624a5f39f3c438f450c"
+admin="0x55d2a15caa90dd828c8952da5d8efc85c35d80a31aaa93763a1b6e073078ff20"
 
 [dev-addresses]
 

@@ -1,6 +1,7 @@
 module app::approvers {
 
     use std::signer;
+    use aptos_std::smart_table;
     use aptos_std::smart_table::{SmartTable, add, borrow_mut};
     use aptos_framework::aptos_coin::AptosCoin;
     use aptos_framework::coin;
@@ -53,6 +54,13 @@ module app::approvers {
     }
 
     // FUNCTIONS
+    fun init_module(account: &signer) {
+        move_to(account, Admin{
+            total_approvers_stake: 0u64, 
+            approver_to_amount_staked: smart_table::new()
+        }); 
+    }
+
     public entry fun become_approver(account: &signer, amount: u64) {
         assert!(
             !exists<Admin>(signer::address_of(account)), ERROR_ADMIN_CANNOT_BE_APPROVER

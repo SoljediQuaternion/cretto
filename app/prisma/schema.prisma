@@ -19,6 +19,7 @@ model Fundraiser_Creator {
   createdAt DateTime @default(now())
   fundraisers Fundraisers[]
   updatedAt DateTime @updatedAt
+  profilePicture String 
 }
 
 model Fundraisers {
